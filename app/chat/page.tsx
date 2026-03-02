@@ -1,8 +1,8 @@
-// app/chat/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabaseClient';
+import { sendPrompt } from '../../lib/groqClient';
 
 type Conversation = {
   id: string;
@@ -28,10 +28,11 @@ export default function ChatPage() {
 
   // Fetch conversation history
   const fetchMessages = async () => {
+    if (!user) return;
     const { data } = await supabase
       .from('conversations')
       .select('*')
-      .eq('user_id', user?.id)
+      .eq('user_id', user.id)
       .order('created_at', { ascending: true });
     if (data) setMessages(data);
   };
@@ -43,14 +44,41 @@ export default function ChatPage() {
   // Send message
   const sendMessage = async () => {
     if (!input) return;
+
+    // Add user message locally
+    const newMessage = { id: Date.now().toString(), content: input, ghost_mode: ghostMode, created_at: new Date().toISOString() };
+    setMessages([...messages, newMessage]);
+
+    // Save user message if not ghost
     if (!ghostMode) {
       await supabase.from('conversations').insert([
         { user_id: user.id, content: input, ghost_mode: false },
       ]);
       fetchMessages();
     }
-    // Here you would call Groq AI API for response
-    setMessages([...messages, { id: Date.now().toString(), content: input, ghost_mode: ghostMode, created_at: new Date().toISOString() }]);
+
+    // Call Groq AI
+    let aiMessage = 'Error generating response';
+    try {
+      const result = await sendPrompt(input);
+      aiMessage = result.output_text || aiMessage;
+    } catch (err) {
+      console.error(err);
+    }
+
+    // Save AI message if not ghost
+    if (!ghostMode) {
+      await supabase.from('conversations').insert([
+        { user_id: user.id, content: aiMessage, ghost_mode: false },
+      ]);
+    }
+
+    // Show AI message locally
+    setMessages((prev) => [
+      ...prev,
+      { id: (Date.now()+1).toString(), content: aiMessage, ghost_mode: ghostMode, created_at: new Date().toISOString() },
+    ]);
+
     setInput('');
   };
 

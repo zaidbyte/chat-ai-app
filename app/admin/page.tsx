@@ -35,7 +35,7 @@ export default function AdminPage() {
 
   // === Fetch all users from Supabase ===
   const fetchUsers = async () => {
-    const { data, error } = await supabase.from('users').select('*');
+    const { data, error } = await supabase.from('custom_users').select('*');
     if (error) console.error(error);
     else setUsers(data);
   };
@@ -47,7 +47,7 @@ export default function AdminPage() {
   // === Create new user ===
   const createUser = async () => {
     if (!userId || !password) return alert('User ID and password required');
-    const { error } = await supabase.from('users').insert([{ id: userId, password, role }]);
+    const { error } = await supabase.from('custom_users').insert([{ id: userId, password, role }]);
     if (error) alert(error.message);
     else {
       alert('User created successfully');
@@ -59,7 +59,7 @@ export default function AdminPage() {
 
   // === Delete existing user ===
   const deleteUser = async (id: string) => {
-    const { error } = await supabase.from('users').delete().eq('id', id);
+    const { error } = await supabase.from('custom_users').delete().eq('id', id);
     if (error) alert(error.message);
     else fetchUsers();
   };

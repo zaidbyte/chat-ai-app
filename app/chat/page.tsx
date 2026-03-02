@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { sendPrompt } from '../../lib/groqClient';
+import UploadImage from './UploadImage';
 
 type Conversation = {
   id: string;

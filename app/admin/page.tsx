@@ -2,12 +2,26 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabaseClient';
+import CryptoJS from 'crypto-js';
+
+const ADMIN_PASSWORD_HASH = 'cf80cd8aed482d5d1527d7dc72fceff84e6326592848447d2dc0b0e87dfc9a90'; 
+//  SHA-256 hash
 
 export default function AdminPage() {
+  const [auth, setAuth] = useState(false); // true = password correct
+  const [inputPassword, setInputPassword] = useState('');
+
   const [userId, setUserId] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('user');
   const [users, setUsers] = useState<any[]>([]);
+
+  // Check admin password
+  const handleAdminLogin = () => {
+    const hash = CryptoJS.SHA256(inputPassword).toString();
+    if (hash === ADMIN_PASSWORD_HASH) setAuth(true);
+    else alert('Incorrect admin password');
+  };
 
   const fetchUsers = async () => {
     const { data, error } = await supabase.from('users').select('*');
@@ -16,8 +30,8 @@ export default function AdminPage() {
   };
 
   useEffect(() => {
-    fetchUsers();
-  }, []);
+    if (auth) fetchUsers();
+  }, [auth]);
 
   const createUser = async () => {
     if (!userId || !password) return alert('User ID and password required');
@@ -37,6 +51,27 @@ export default function AdminPage() {
     if (error) alert(error.message);
     else fetchUsers();
   };
+
+  if (!auth) {
+    return (
+      <div className="p-8 max-w-md mx-auto">
+        <h1 className="text-2xl mb-4">Admin Login</h1>
+        <input
+          type="password"
+          placeholder="Admin Password"
+          value={inputPassword}
+          onChange={(e) => setInputPassword(e.target.value)}
+          className="border p-2 w-full mb-4"
+        />
+        <button
+          onClick={handleAdminLogin}
+          className="bg-blue-500 text-white p-2 w-full"
+        >
+          Login
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="p-8 max-w-3xl mx-auto">

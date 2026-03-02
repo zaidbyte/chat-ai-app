@@ -1,8 +1,7 @@
 // lib/tokenManager.ts
 export const tokens = [
-  'YOUR_GROQ_TOKEN_1',
-  'YOUR_GROQ_TOKEN_2',
-  'YOUR_GROQ_TOKEN_3', // add as many as you have
+  process.env.NEXT_PUBLIC_GROQ_TOKEN_1!,
+  process.env.NEXT_PUBLIC_GROQ_TOKEN_2!,
 ];
 
 let currentIndex = 0;

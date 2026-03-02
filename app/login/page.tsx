@@ -2,32 +2,47 @@
 
 import { useState } from 'react';
 import { supabase } from '../../lib/supabaseClient';
-import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
   const [userId, setUserId] = useState('');
   const [password, setPassword] = useState('');
-  const router = useRouter();
+  const [loggedIn, setLoggedIn] = useState(false);
 
-  const login = async () => {
-    if (!userId || !password) return alert('User ID and password required');
+  // SHA-256 hashing function
+  const hashPassword = async (password: string) => {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(password);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(hashBuffer))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+  };
 
+  const handleLogin = async () => {
+    if (!userId || !password) return alert('Enter User ID and password');
+
+    const hash = await hashPassword(password);
+
+    // Query custom_users table
     const { data, error } = await supabase
-      .from('users')
+      .from('custom_users')
       .select('*')
       .eq('id', userId)
-      .eq('password', password)
       .single();
 
-    if (error || !data) {
-      alert('Invalid User ID or Password');
+    if (error || !data) return alert('User not found');
+
+    if (data.password === hash) {
+      setLoggedIn(true);
+      alert(`Welcome, ${userId}`);
     } else {
-      // save login session (simple example)
-      localStorage.setItem('userId', data.id);
-      localStorage.setItem('role', data.role);
-      router.push('/dashboard');
+      alert('Incorrect password');
     }
   };
+
+  if (loggedIn) {
+    return <div className="p-8">Welcome, {userId}!</div>;
+  }
 
   return (
     <div className="p-8 max-w-md mx-auto">
@@ -45,7 +60,10 @@ export default function LoginPage() {
         onChange={(e) => setPassword(e.target.value)}
         className="border p-2 w-full mb-4"
       />
-      <button onClick={login} className="bg-blue-500 text-white p-2 w-full">
+      <button
+        onClick={handleLogin}
+        className="bg-blue-500 text-white p-2 w-full"
+      >
         Login
       </button>
     </div>

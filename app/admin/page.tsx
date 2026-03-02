@@ -1,4 +1,3 @@
-// app/admin/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -10,31 +9,43 @@ type User = {
   role: string;
 };
 
+type Announcement = {
+  id: string;
+  title: string;
+  content: string;
+};
+
 export default function AdminPanel() {
   const [users, setUsers] = useState<User[]>([]);
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('user');
-  const [announcement, setAnnouncement] = useState('');
 
-  // Fetch users from Supabase
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [annTitle, setAnnTitle] = useState('');
+  const [annContent, setAnnContent] = useState('');
+
+  // Fetch users
   const fetchUsers = async () => {
     const { data, error } = await supabase.from('users').select('*');
     if (data) setUsers(data);
   };
 
+  // Fetch announcements
+  const fetchAnnouncements = async () => {
+    const { data, error } = await supabase.from('announcements').select('*').order('created_at', { ascending: false });
+    if (data) setAnnouncements(data);
+  };
+
   useEffect(() => {
     fetchUsers();
+    fetchAnnouncements();
   }, []);
 
-  // Create new user
+  // Create user
   const createUser = async () => {
-    const { data, error } = await supabase.from('users').insert([{ email, role }]);
+    const { error } = await supabase.from('users').insert([{ email, role }]);
     if (error) alert(error.message);
-    else {
-      setEmail('');
-      setRole('user');
-      fetchUsers();
-    }
+    else { setEmail(''); setRole('user'); fetchUsers(); }
   };
 
   // Delete user
@@ -43,16 +54,27 @@ export default function AdminPanel() {
     fetchUsers();
   };
 
-  // Update user role
+  // Update role
   const updateRole = async (id: string, newRole: string) => {
     await supabase.from('users').update({ role: newRole }).eq('id', id);
     fetchUsers();
   };
 
-  // Set announcement (you can save it in a table later)
-  const saveAnnouncement = () => {
-    localStorage.setItem('announcement', announcement);
-    alert('Announcement saved!');
+  // Create announcement
+  const createAnnouncement = async () => {
+    const { data, error } = await supabase.from('announcements').insert([{
+      title: annTitle,
+      content: annContent,
+      created_by: supabase.auth.getUser().then(u => u.data.user?.id),
+    }]);
+    if (error) alert(error.message);
+    else { setAnnTitle(''); setAnnContent(''); fetchAnnouncements(); }
+  };
+
+  // Delete announcement
+  const deleteAnnouncement = async (id: string) => {
+    await supabase.from('announcements').delete().eq('id', id);
+    fetchAnnouncements();
   };
 
   return (
@@ -84,23 +106,14 @@ export default function AdminPanel() {
         <h2 className="text-xl mb-2">Users</h2>
         {users.map((user) => (
           <div key={user.id} className="flex items-center justify-between mb-2">
+            <div>{user.email} - {user.role}</div>
             <div>
-              {user.email} - {user.role}
-            </div>
-            <div>
-              <select
-                value={user.role}
-                onChange={(e) => updateRole(user.id, e.target.value)}
-                className="p-1 border rounded mr-2"
-              >
+              <select value={user.role} onChange={(e) => updateRole(user.id, e.target.value)} className="p-1 border rounded mr-2">
                 <option value="user">User</option>
                 <option value="moderator">Moderator</option>
                 <option value="admin">Admin</option>
               </select>
-              <button
-                onClick={() => deleteUser(user.id)}
-                className="p-1 bg-red-500 rounded text-white hover:bg-red-600"
-              >
+              <button onClick={() => deleteUser(user.id)} className="p-1 bg-red-500 rounded text-white hover:bg-red-600">
                 Delete
               </button>
             </div>
@@ -110,17 +123,36 @@ export default function AdminPanel() {
 
       {/* Announcements */}
       <div>
-        <h2 className="text-xl mb-2">Set Announcement</h2>
+        <h2 className="text-xl mb-2">Announcements</h2>
         <input
           type="text"
-          placeholder="Announcement"
-          value={announcement}
-          onChange={(e) => setAnnouncement(e.target.value)}
-          className="p-2 border rounded mr-2 w-1/2"
+          placeholder="Title"
+          value={annTitle}
+          onChange={(e) => setAnnTitle(e.target.value)}
+          className="p-2 border rounded mr-2 mb-2 w-full max-w-md block"
         />
-        <button onClick={saveAnnouncement} className="p-2 bg-blue-500 rounded text-white hover:bg-blue-600">
-          Save
+        <textarea
+          placeholder="Content"
+          value={annContent}
+          onChange={(e) => setAnnContent(e.target.value)}
+          className="p-2 border rounded mr-2 mb-2 w-full max-w-md block"
+        />
+        <button onClick={createAnnouncement} className="p-2 bg-blue-500 rounded text-white hover:bg-blue-600 mb-4">
+          Create Announcement
         </button>
+
+        {/* Announcements List */}
+        {announcements.map((ann) => (
+          <div key={ann.id} className="border p-2 mb-2 rounded bg-gray-200 dark:bg-gray-700 flex justify-between items-start">
+            <div>
+              <h3 className="font-bold">{ann.title}</h3>
+              <p>{ann.content}</p>
+            </div>
+            <button onClick={() => deleteAnnouncement(ann.id)} className="p-1 bg-red-500 rounded text-white hover:bg-red-600">
+              Delete
+            </button>
+          </div>
+        ))}
       </div>
     </div>
   );

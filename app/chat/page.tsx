@@ -111,6 +111,22 @@ export default function ChatPage() {
           ))}
         </div>
 
+        {/* Input + Send Button */}
+<div className="flex gap-2">
+  <input
+    type="text"
+    value={input}
+    onChange={(e) => setInput(e.target.value)}
+    placeholder="Type a message..."
+    className="flex-1 p-2 border rounded"
+  />
+  <button onClick={sendMessage} className="p-2 bg-green-500 rounded text-white hover:bg-green-600">
+    Send
+  </button>
+</div>
+
+{/* Image Upload */}
+<UploadImage user={user} addMessage={(msg) => setMessages((prev) => [...prev, msg])} />
         <div className="flex gap-2">
           <input
             type="text"

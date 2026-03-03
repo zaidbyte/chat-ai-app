@@ -3,8 +3,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 
+type Message = { role: 'user' | 'ai'; text: string };
+
 export default function ChatPage() {
-  const [messages, setMessages] = useState<{ role: 'user' | 'ai'; text: string }[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [userId, setUserId] = useState('');
   const [rememberUser, setRememberUser] = useState(false);
@@ -36,7 +38,12 @@ export default function ChatPage() {
         .order('id', { ascending: true });
       if (error) console.error(error);
       else
-        setMessages(data.map((m: any) => ({ role: m.role, text: m.text })));
+        setMessages(
+          data.map((m: any) => ({
+            role: m.role as 'user' | 'ai',
+            text: m.text,
+          }))
+        );
     };
     fetchMessages();
   }, [userId, ghostMode]);
@@ -45,14 +52,14 @@ export default function ChatPage() {
   const sendMessage = async () => {
     if (!input || !userId) return;
 
-    const userMessage = { role: 'user', text: input };
+    const userMessage: Message = { role: 'user', text: input };
     setMessages((prev) => [...prev, userMessage]);
     setInput('');
 
     // Save to DB if not ghost mode
     if (!ghostMode) {
       const { error } = await supabase.from('chat_messages').insert([
-        { user_id: userId, text: input, role: 'user' }
+        { user_id: userId, text: input, role: 'user' },
       ]);
       if (error) console.error(error);
     }
@@ -63,24 +70,24 @@ export default function ChatPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.NEXT_PUBLIC_GROQ_TOKEN_1}`
+          Authorization: `Bearer ${process.env.NEXT_PUBLIC_GROQ_TOKEN_1}`,
         },
         body: JSON.stringify({
-          model: 'gpt-4', // replace with your Groq model
+          model: 'gpt-4',
           prompt: input,
-          max_tokens: 200
-        })
+          max_tokens: 200,
+        }),
       });
 
       const data = await aiResponse.json();
       const text = data.choices?.[0]?.text || 'Error: no response';
 
-      const aiMessage = { role: 'ai', text };
+      const aiMessage: Message = { role: 'ai', text };
       setMessages((prev) => [...prev, aiMessage]);
 
       if (!ghostMode) {
         const { error } = await supabase.from('chat_messages').insert([
-          { user_id: userId, text, role: 'ai' }
+          { user_id: userId, text, role: 'ai' },
         ]);
         if (error) console.error(error);
       }

@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabaseClient';
+import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
   const [userId, setUserId] = useState('');
   const [password, setPassword] = useState('');
-  const [loggedIn, setLoggedIn] = useState(false);
-  const [userRole, setUserRole] = useState('');
+  const [rememberUser, setRememberUser] = useState(false);
+  const router = useRouter();
 
   const hashPassword = async (password: string) => {
     const encoder = new TextEncoder();
@@ -17,6 +18,16 @@ export default function LoginPage() {
       .map((b) => b.toString(16).padStart(2, '0'))
       .join('');
   };
+
+  useEffect(() => {
+    const saved = localStorage.getItem('chat_user');
+    if (saved) setUserId(saved);
+  }, []);
+
+  useEffect(() => {
+    if (rememberUser) localStorage.setItem('chat_user', userId);
+    else localStorage.removeItem('chat_user');
+  }, [rememberUser, userId]);
 
   const handleLogin = async () => {
     if (!userId || !password) return alert('Enter User ID and password');
@@ -32,27 +43,9 @@ export default function LoginPage() {
     if (error || !data) return alert('User not found');
     if (data.password !== hashed) return alert('Incorrect password');
 
-    setLoggedIn(true);
-    setUserRole(data.role);
+    // Redirect to chat page
+    router.push('/chat');
   };
-
-  if (loggedIn) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-8">
-        <h1 className="text-3xl font-bold mb-4">Welcome, {userId}!</h1>
-        <p className="mb-6 text-gray-700">Role: {userRole}</p>
-        <div className="bg-white p-6 rounded shadow w-full max-w-lg">
-          <h2 className="text-2xl font-semibold mb-4">Dashboard</h2>
-          <p className="text-gray-700 mb-2">
-            Here’s where you can add your features: Chat, Forum, Settings, etc.
-          </p>
-          <p className="text-gray-700">
-            You can now build the full UI for messages, ghost mode, image uploads, etc.
-          </p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -62,15 +55,23 @@ export default function LoginPage() {
           placeholder="User ID"
           value={userId}
           onChange={(e) => setUserId(e.target.value)}
-          className="border p-2 mb-3 rounded w-full"
+          className="border p-2 mb-3 rounded w-full text-black"
         />
         <input
           type="password"
           placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="border p-2 mb-4 rounded w-full"
+          className="border p-2 mb-4 rounded w-full text-black"
         />
+        <label className="flex items-center gap-2 mb-4 text-black">
+          <input
+            type="checkbox"
+            checked={rememberUser}
+            onChange={(e) => setRememberUser(e.target.checked)}
+          />
+          Remember Me
+        </label>
         <button
           onClick={handleLogin}
           className="bg-blue-600 text-white p-2 w-full rounded hover:bg-blue-700 transition"

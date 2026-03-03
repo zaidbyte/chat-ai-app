@@ -73,9 +73,9 @@ export default function ChatPage() {
           Authorization: `Bearer ${process.env.NEXT_PUBLIC_GROQ_TOKEN_1}`,
         },
         body: JSON.stringify({
-          model: 'gpt-4',
+          model: 'openai/gpt-oss-20b',
           prompt: input,
-          max_tokens: 200,
+          max_tokens: 500,
         }),
       });
 

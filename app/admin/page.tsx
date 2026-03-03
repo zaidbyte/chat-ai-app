@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 
 const ADMIN_PASSWORD_HASH =
-  'cf80cd8aed482d5d1527d7dc72fceff84e6326592848447d2dc0b0e87dfc9a90';
+  'cf80cd8aed482d5d1527d7dc72fceff84e6326592848447d2dc0b0e87dfc9a90'; 
 // SHA-256 hash of your admin password
 
 export default function AdminPage() {
@@ -44,7 +44,6 @@ export default function AdminPage() {
   const createUser = async () => {
     if (!userId || !password) return alert('User ID and password required');
 
-    // Hash password automatically
     const hashed = await hashPassword(password);
 
     const { error } = await supabase
@@ -75,7 +74,7 @@ export default function AdminPage() {
             placeholder="Admin Password"
             value={inputPassword}
             onChange={(e) => setInputPassword(e.target.value)}
-            className="border p-2 w-full mb-4 rounded"
+            className="border p-2 w-full mb-4 rounded text-black"
           />
           <button
             onClick={handleAdminLogin}
@@ -99,18 +98,18 @@ export default function AdminPage() {
             placeholder="User ID"
             value={userId}
             onChange={(e) => setUserId(e.target.value)}
-            className="border p-2 rounded"
+            className="border p-2 rounded text-black"
           />
           <input
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="border p-2 rounded"
+            className="border p-2 rounded text-black"
           />
           <select
             value={role}
             onChange={(e) => setRole(e.target.value)}
-            className="border p-2 rounded"
+            className="border p-2 rounded text-black"
           >
             <option value="user">User</option>
             <option value="admin">Admin</option>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../lib/supabaseClient';
+import OpenAI from 'openai';
 
 type Message = { role: 'user' | 'ai'; text: string };
 
@@ -13,7 +14,8 @@ export default function ChatPage() {
   const [ghostMode, setGhostMode] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
-  const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  const scrollToBottom = () =>
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   useEffect(scrollToBottom, [messages]);
 
   // Load remembered user
@@ -48,7 +50,6 @@ export default function ChatPage() {
     fetchMessages();
   }, [userId, ghostMode]);
 
-  // Send message
   const sendMessage = async () => {
     if (!input || !userId) return;
 
@@ -56,7 +57,6 @@ export default function ChatPage() {
     setMessages((prev) => [...prev, userMessage]);
     setInput('');
 
-    // Save to DB if not ghost mode
     if (!ghostMode) {
       const { error } = await supabase.from('chat_messages').insert([
         { user_id: userId, text: input, role: 'user' },
@@ -64,24 +64,19 @@ export default function ChatPage() {
       if (error) console.error(error);
     }
 
-    // Call Groq AI
+    // Groq AI SDK
     try {
-      const aiResponse = await fetch('https://api.groq.ai/v1/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${process.env.NEXT_PUBLIC_GROQ_TOKEN_1}`,
-        },
-        body: JSON.stringify({
-          model: 'openai/gpt-oss-20b',
-          prompt: input,
-          max_tokens: 500,
-        }),
+      const client = new OpenAI({
+        apiKey: process.env.NEXT_PUBLIC_GROQ_TOKEN_1,
+        baseURL: 'https://api.groq.com/openai/v1',
       });
 
-      const data = await aiResponse.json();
-      const text = data.choices?.[0]?.text || 'Error: no response';
+      const response = await client.responses.create({
+        model: 'openai/gpt-oss-20b',
+        input: input,
+      });
 
+      const text = response.output_text || 'No response from AI';
       const aiMessage: Message = { role: 'ai', text };
       setMessages((prev) => [...prev, aiMessage]);
 
@@ -129,7 +124,9 @@ export default function ChatPage() {
       <div className="flex-1 overflow-y-auto border rounded p-4 bg-white mb-4 h-[60vh]">
         {messages.map((m, idx) => (
           <div key={idx} className="mb-2">
-            <span className="font-bold text-black">{m.role === 'user' ? userId : 'AI'}: </span>
+            <span className="font-bold text-black">
+              {m.role === 'user' ? userId : 'AI'}:{' '}
+            </span>
             <span className="text-black">{m.text}</span>
           </div>
         ))}
